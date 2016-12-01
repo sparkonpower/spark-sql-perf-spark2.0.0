@@ -138,7 +138,7 @@ object RunTPCBenchmark {
           avg($"executionTime") as 'avgTimeMs,
           stddev($"executionTime") as 'stdDev)
         .orderBy("name")
-        .show(truncate = false)
+        .show(200, truncate = false)
     println(s"""Results: sqlContext.read.json("${experiment.resultPath}")""")
 
     config.baseline.foreach { baseTimestamp =>
@@ -159,7 +159,8 @@ object RunTPCBenchmark {
             "percentChange", ($"baselineTimeMs" - $"thisRunTimeMs") / $"baselineTimeMs" * 100)
           .filter('thisRunTimeMs.isNotNull)
 
-      data.show(truncate = false)
+      //data.show(truncate = false)
+      data.show(200, false)
     }
   }
 }
