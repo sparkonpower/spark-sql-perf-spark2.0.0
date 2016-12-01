@@ -23,6 +23,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkContext, SparkConf}
 import com.databricks.spark.sql.perf.tpcds.TPCDS
 import scala.util.Try
+import scala.io.Source
 
 case class RunTPCConfig(
     benchmarkName: String = null,
@@ -68,19 +69,13 @@ object RunTPCBenchmark {
 
   def run(config: RunTPCConfig): Unit = {
     val conf = new SparkConf()
-     //   .setMaster("local[*]")
-     //   .setAppName(getClass.getName)
 
     val sc = SparkContext.getOrCreate(conf)
 
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     import sqlContext.implicits._
 
-  //  val sqlContext = SQLContext.getOrCreate(sc)
-  //  import sqlContext.implicits._
-
-	//sqlContext.sql(s"USE tpcds1g1")
-	sqlContext.sql(s"USE ${config.dbname}")
+    sqlContext.sql(s"USE ${config.dbname}")
 
     sqlContext.setConf("spark.sql.perf.results", new java.io.File("performance").toURI.toString)
     val benchmark = Try {
@@ -94,24 +89,22 @@ object RunTPCBenchmark {
           .asInstanceOf[Benchmark]
     }
 
-  //  benchmark.allQueries.foreach(println)
-//    val allQueries = config.filter.map { f =>
-//      benchmark.allQueries.filter(_.name contains f)
-//    } getOrElse {
-//      benchmark.allQueries
-//    }
-
     val tpcds = new TPCDS ()
 
-    val allQueries = config.filter.map { f =>
-        if(f.equals("all")) {
-          tpcds.tpcds1_4Queries
-        } else {
-          tpcds.tpcds1_4Queries.filter(_.name contains f)
-        }
-      } getOrElse {
-        tpcds.tpcds1_4Queries
+    val allQueries = config.filter match {
+      case Some(f) => {
+          if(f.equals("all")) {
+            tpcds.tpcds1_4Queries
+          } else {
+            val queries: Seq[Query] = f.split(",").flatMap({ query =>
+                val fullqueryname = query.trim + "-v1.4"
+                tpcds.tpcds1_4Queries.filter(_.name equals fullqueryname)
+            })
+            queries
+          }
       }
+      case None => tpcds.tpcds1_4Queries
+    }
 
     println("== QUERY LIST ==")
     allQueries.foreach(q => println(q.name))
