@@ -129,7 +129,8 @@ object RunTPCBenchmark {
           min($"executionTime") as 'minTimeMs,
           max($"executionTime") as 'maxTimeMs,
           avg($"executionTime") as 'avgTimeMs,
-          stddev($"executionTime") as 'stdDev)
+          stddev($"executionTime") as 'stdDev,
+          count($"executionTime") as 'count)
         .orderBy("name")
         .show(200, truncate = false)
     println(s"""Results: sqlContext.read.json("${experiment.resultPath}")""")
