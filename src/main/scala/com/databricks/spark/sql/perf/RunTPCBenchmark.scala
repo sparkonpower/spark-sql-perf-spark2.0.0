@@ -25,6 +25,8 @@ import com.databricks.spark.sql.perf.tpcds.TPCDS
 import scala.util.Try
 import scala.io.Source
 
+case class sparkConfigMap(configName: String, value: String)
+
 case class RunTPCConfig(
     benchmarkName: String = null,
     filter: Option[String] = None,
@@ -121,6 +123,11 @@ object RunTPCBenchmark {
     experiment.waitForFinish(1000 * 60 * 30)
 
     sqlContext.setConf("spark.sql.shuffle.partitions", "1")
+
+    val exec = sc.getConf.get("spark.executor.instances","1")
+    val cores = sc.getConf.get("spark.executor.cores","1")
+    val mem = sc.getConf.get("spark.executor.memory","1G")
+
     experiment.getCurrentRuns()
         .withColumn("result", explode($"results"))
         .select("result.*")
@@ -130,9 +137,39 @@ object RunTPCBenchmark {
           max($"executionTime") as 'maxTimeMs,
           avg($"executionTime") as 'avgTimeMs,
           stddev($"executionTime") as 'stdDev,
-          count($"executionTime") as 'count)
+          count($"executionTime") as 'count,
+          lit(exec) as 'exec,
+          lit(cores) as 'cores,
+          lit(mem) as 'mem )
         .orderBy("name")
         .show(200, truncate = false)
+
+    experiment.getCurrentRuns()
+        .withColumn("result", explode($"results")).select("result.*").select("name", "executionTime")
+        .orderBy("name")
+        .show(2000, truncate = false)
+
+    val sparkConfUdf = udf((kvs:Map[String, String]) =>  {
+      val x: Seq[sparkConfigMap] = kvs.map(kv => {
+        sparkConfigMap(kv._1, kv._2)
+      }).toSeq
+      x
+    })
+
+    val filterFields = List("spark.executor.instances",
+                            "spark.executor.extraJavaOptions",
+                            "spark.driver.memory",
+                            "spark.executor.memory",
+                            "spark.executor.cores",
+                            "spark.yarn.executor.memoryOverhead",
+                            "spark.sql.shuffle.partitions")
+    
+    experiment.getCurrentRuns()
+      .select("configuration.sparkConf").withColumn("cfg", sparkConfUdf($"sparkConf"))
+      .withColumn("cfgflat", explode($"cfg")).select("cfgflat.*").dropDuplicates()
+      .filter($"configName" isin (filterFields:_*))
+      .show(200, truncate = false)
+
     println(s"""Results: sqlContext.read.json("${experiment.resultPath}")""")
 
     config.baseline.foreach { baseTimestamp =>
