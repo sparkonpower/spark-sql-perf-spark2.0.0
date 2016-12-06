@@ -23,15 +23,16 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.{SparkContext, SparkConf}
 import com.databricks.spark.sql.perf.tpcds.TPCDS
 import scala.util.Try
-import scala.io.Source
+import java.util.concurrent.TimeoutException
 
 case class sparkConfigMap(configName: String, value: String)
 
 case class RunTPCConfig(
     benchmarkName: String = null,
     filter: Option[String] = None,
-    iterations: Int = 1,
+    iterations: Int = 10000,
     dbname: String = "tpcds1g1",
+    timeout: Int = 1000 * 60 * 30,
     baseline: Option[Long] = None)
 
 /**
@@ -54,6 +55,9 @@ object RunTPCBenchmark {
       opt[String]('d', "dbname")
         .action((x, c) => c.copy(dbname = x))
         .text("the database name to run SQL queries")
+      opt[Int]('t', "timeout")
+          .action((x, c) => c.copy(timeout = x))
+          .text("the timeout period for query execution")
       opt[Long]('c', "compare")
           .action((x, c) => c.copy(baseline = Some(x)))
           .text("the timestamp of the baseline experiment to compare with")
@@ -120,7 +124,12 @@ object RunTPCBenchmark {
         "host" -> InetAddress.getLocalHost().getHostName()))
 
     println("== STARTING EXPERIMENT ==")
-    experiment.waitForFinish(1000 * 60 * 30)
+    try {
+        experiment.waitForFinish(config.timeout)
+    } catch {
+      case e: TimeoutException => println(s"Got Timed out after ($config.timeout ms) !!")
+      case _: Throwable => println("Got Killed with other exception ")
+    }
 
     sqlContext.setConf("spark.sql.shuffle.partitions", "1")
 
