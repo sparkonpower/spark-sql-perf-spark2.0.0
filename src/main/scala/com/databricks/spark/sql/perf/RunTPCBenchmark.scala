@@ -127,7 +127,7 @@ object RunTPCBenchmark {
     try {
         experiment.waitForFinish(config.timeout)
     } catch {
-      case e: TimeoutException => println(s"Got Timed out after ($config.timeout ms) !!")
+      case e: TimeoutException => println(s"Got Timed out after (${config.timeout} ms) !!")
       case _: Throwable => println("Got Killed with other exception ")
     }
 
