@@ -31,7 +31,7 @@ case class RunConfig(
     baseline: Option[Long] = None)
 
 /**
- * Runs a benchmark locally and prints the results to the screen.
+ * Runs a benchmark on a cluster and prints the results to the screen.
  */
 object RunBenchmark {
   def main(args: Array[String]): Unit = {
@@ -64,10 +64,8 @@ object RunBenchmark {
 
   def run(config: RunConfig): Unit = {
     val conf = new SparkConf()
-        .setMaster("local[*]")
-        .setAppName(getClass.getName)
 
-    val sc = SparkContext.getOrCreate(conf)
+    val sc = new SparkContext(conf)
     val sqlContext = SQLContext.getOrCreate(sc)
     import sqlContext.implicits._
 
@@ -95,7 +93,7 @@ object RunBenchmark {
       executionsToRun = allQueries,
       iterations = config.iterations,
       tags = Map(
-        "runtype" -> "local",
+        "runtype" -> "cluster",
         "host" -> InetAddress.getLocalHost().getHostName()))
 
     println("== STARTING EXPERIMENT ==")
