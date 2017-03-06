@@ -204,7 +204,7 @@ abstract class Benchmark(
     }
   }
 
-  object RDDCount {
+  object RDDCount extends Serializable {
     def apply(
         name: String,
         rdd: RDD[_]) = {

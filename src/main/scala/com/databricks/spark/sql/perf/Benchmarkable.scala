@@ -25,13 +25,14 @@ import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.{SparkEnv, SparkContext}
-
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /** A trait to describe things that can be benchmarked. */
-trait Benchmarkable extends Logging {
+trait Benchmarkable extends Serializable {
   @transient protected[this] val sqlContext = SQLContext.getOrCreate(SparkContext.getOrCreate())
   @transient protected[this] val sparkContext = sqlContext.sparkContext
-
+  @transient val logger: Logger =   LoggerFactory getLogger getClass.getName
   val name: String
   protected val executionMode: ExecutionMode
 

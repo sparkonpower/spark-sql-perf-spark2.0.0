@@ -21,9 +21,9 @@ import org.apache.spark.sql.expressions.Aggregator
 
 case class Data(id: Long)
 
-case class SumAndCount(var sum: Long, var count: Int)
+case class SumAndCount(var sum: Long, var count: Int) extends Serializable
 
-class DatasetPerformance extends Benchmark {
+class DatasetPerformance extends Benchmark with Serializable {
 
   import sqlContext.implicits._
 
@@ -99,7 +99,7 @@ class DatasetPerformance extends Benchmark {
         .map(d => Data(d.id + 1L)))
   )
 
-  val average = new Aggregator[Long, SumAndCount, Double] {
+  @transient val average = new Aggregator[Long, SumAndCount, Double] {
     override def zero: SumAndCount = SumAndCount(0, 0)
 
     override def reduce(b: SumAndCount, a: Long): SumAndCount = {
