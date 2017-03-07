@@ -12,7 +12,7 @@ class MLTransformerBenchmarkable(
     params: MLParams,
     test: BenchmarkAlgorithm,
     sqlContext: SQLContext)
-  extends Benchmarkable with Serializable with Logging {
+  extends Benchmarkable with Serializable {
 
   import MLTransformerBenchmarkable._
 
